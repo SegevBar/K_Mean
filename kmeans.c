@@ -134,6 +134,13 @@ int main(int argc, char *argv[]){
         has_converged = updateCentroids(clusters, k, dim);
         
         rewind(ifp);
+        
+        for(i = 0; i < k; i++){
+            clusters[i].vector_count = 0;
+            for(j = 0; j < dim; j++){
+                clusters[i].vectors_sum[j] = 0;
+            }
+        }
         cnt++;
     }
     fclose(ifp);
@@ -188,14 +195,11 @@ void calcCluster(double* vector, Cluster* clusters, int k, int dim) {
 double calcDistance(double* vector1, double* vector2, int dim) {
     double sum = 0.0;
     int j = 0;
-    double dist = 0.0;
 
     for (j = 0; j < dim; j++) {
         sum += (vector1[j]-vector2[j])*(vector1[j]-vector2[j]);
     } 
-
-    dist = sqrt(sum);
-    return dist;
+    return sum;
 }
 
 int updateCentroids(Cluster* clusters, int k, int dim) {
@@ -216,15 +220,16 @@ int updateCentroids(Cluster* clusters, int k, int dim) {
         for (j = 0; j < dim; j++) {
             new_centroid[j] = (clusters[i].vectors_sum[j]/clusters[i].vector_count);
         }
-        dist = calcDistance(clusters[i].centroid, new_centroid, dim);
+        dist = sqrt(calcDistance(clusters[i].centroid, new_centroid, dim));
 
         /*check if convergence did not accured*/
-        if (dist > epsilon) {
+        if (dist >= epsilon) {
             has_converged = 0;
         }
 
         /*update centroid*/
         memcpy(clusters[i].centroid, new_centroid, sizeof(double)*dim);
+
         free(new_centroid);
     }
     return has_converged;

@@ -1,7 +1,12 @@
 gcc -ansi -Wall -Wextra -Werror -pedantic-errors kmeans.c -lm -o hw1
 
-./hw1 3 100 input_1.txt out.txt
+./hw1 3 600 input_1.txt out.txt
 
-./hw1 7 100 input_2.txt out.txt
+./hw1 7 input_2.txt out.txt
 
-./hw1 15 100 input_3.txt out.txt
+./hw1 15 300 input_3.txt out.txt
+
+
+./hw1 3 1 mytest1.txt out.txt
+
+./hw1 3 600 input_1.txt
