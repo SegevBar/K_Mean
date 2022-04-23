@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <math.h>
 #include <string.h>
 
 typedef struct 
 {
+    int vector_count;
+    double* vectors_sum;
     double* centroid;
-    int num_of_points;
-    double* sum_of_points;
 } Cluster;
 
 /*Prototypes*/
@@ -15,27 +15,28 @@ typedef struct
 
 int main(int argc, char *argv[]){
     int hasMaxIter = 1;
-    
+    int max_iter = 0;
+    int k = 1;
     FILE *ifp = NULL;
     FILE *ofp = NULL;
-
-    char c;
+    int c;
+    char ch;
     double value;
     int N = 0;
     int dim = 1;
     Cluster* clusters;
-    double** data_points;
-    int same_average = 0;
+    double* currVector = NULL;
+    int has_converged = 0;
     int cnt = 0;
     int i = 0;
     int j = 0;
     
     /*check input for enough params*/
-    if (argc < 3) {
+    if ((argc < 4) || (argc > 5)) {
         printf("\nInvalid Input\n");
         exit(1);
     } else {
-        if (argc == 3) {
+        if (argc == 4) {
             hasMaxIter = 0;
         }
     }
@@ -43,30 +44,105 @@ int main(int argc, char *argv[]){
     /*find max_iter*/
     int max_iter = findMaxIter(hasMaxIter, *argv[]);  
     
-    /*find vector dimentions and N*/
+    /*open input file*/
     ifp = fopen(argv[2 + hasMaxIter], "r");
-    if (ifp != NULL) {
-        
+    if (ifp == NULL) {
+        printf("\nInvalid Input\n");
+        exit(1);
     }
 
-    /*find k and check if valid*/ 
-    int k = atoi(argv[1]);
-    checkK(k, N, *argv[]);
+    /*find vector dimensions*/
+    while ((c = fgetc(ifp)) != 10) {  //run until end of line
+        if (c == 44) {  //if c == "," increment dimension
+            dim++; 
+        }
+    }
+    rewind(ifp);
 
-    /*allocate memory*/
-    matrixAllocation();
+    /*find N*/
+    while ((c = fgetc(ifp)) != EOF) {  //run until end of file
+        if(c == 10) { //if (c == "\n") increment N
+            N++;
+        }
+    }
+    rewind(ifp);
+
+    /*find k and check if valid*/ 
+    k = checkK(N, *argv[]);
    
     /*Init k clusters*/
-    initKClusters();
+    clusters = (Cluster*)calloc(k,sizeof(struct Cluster));
+    
+    for (i = 0; i < k; i++){
+        clusters[i].vector_count = 0; //init cluster vector counter
+
+        /*init sum of vectors in cluster*/ 
+        clusters[i].vectors_sum = (double*)calloc(dim, sizeof(double));
+        if (clusters[i].vectors_sum == NULL) {
+            printf("\nAn Error Has Occurred\n");
+            exit(1);
+        }
+
+        /*init centroid to i'th vectors*/
+        clusters[i].centroid = (double*)calloc(dim, sizeof(double));
+        if (clusters[i].centroid == NULL) {
+            printf("\nAn Error Has Occurred\n");
+            exit(1);
+        }
+        for (j = 0; j < dim; j++){
+           fscanf(ifp, "%lf%c", &value, &ch);
+           clusters[i].centroid[j] = value;
+        }
+    }
+    rewind(ifp);
 
     /*main loop*/
-    mainLoop();
+    cnt = 0;
+    while ((cnt < max_iter) && (!has_converged)) {
+
+        /*find current vector cluster*/
+        for (i = 0; i < N; i++) {
+            currVector = (double*)calloc(dim, sizeof(double));
+            if (currVector == NULL) {
+                printf("\nAn Error Has Occurred\n");
+                exit(1);
+            }
+            for (j = 0; j < dim; j++){
+                fscanf(ifp, "%lf%c", &value, &ch);
+                currVector[j] = value;
+            }
+            calcCluster(currVector, clusters, k, dim);
+            free(currVector);
+        }
+        
+        /*update centroids*/
+        has_converged = updateCentroids(clusters, k, dimension);
+        
+        rewind(ifp);
+        cnt++;
+    }
+    fclose(ifp);
 
     /*write to output file*/
+    fopen(ofp, "w");
+    if (ofp == NULL) {
+        printf("\nInvalid Input\n");
+        exit(1);
+    }
+    for (i = 0; i < k; i++) {
+        for (j = 0; j < dim-1; j++){
+            fprintf(ofp, "%lf%c", clusters[i].centroid[j], ',');
+        }
+        fprintf(ofp, "%lf%c", clusters[i].centroid[dim-1], '\n');
+    }
+    fclose(ofp);
     
-    
-    /*free memory*/
-    freeMemory(clusters, data_points, k, num_of_points);
+    /*free clusters memory*/
+    for(i = 0; i < k; i++){
+        free(clusters[i].centroid);
+        free(clusters[i].vectors_sum);
+    }
+    free(clusters);
 
     return 0;
 }
@@ -74,8 +150,8 @@ int main(int argc, char *argv[]){
 int findMaxIter(int hasMaxIter, char *argv[]) {
     int max_iter = 0;
 
-    /*chack if max_iter is default or param*/
-    if !(hasMaxIter) { 
+    /*check if max_iter is default or param*/
+    if (hasMaxIter == 0) { 
         max_iter = 200;
     } else {
         if ((atoi(argv[2]) <= 0) || (strchr(argv[2], '.') != NULL)) {
@@ -87,159 +163,79 @@ int findMaxIter(int hasMaxIter, char *argv[]) {
     return max_iter;
 }
 
-int findDimension() {
-    int dim = 1;
-
-    while(scanf("%lf%c", &value, &c) == 2){
-        if((c==',') && num_of_points == 0){
-            dimension++;
-        }
-        if(c == '\n'){
-            num_of_points++;
-        }
-    }
-    rewind(stdin);
-
-    return dim;
-}
-
-int findN() {
-    int N = 0;
-    while(scanf("%lf%c", &value, &c) == 2){
-        if((c==',') && num_of_points == 0){
-            dimension++;
-        }
-        if(c == '\n'){
-            num_of_points++;
-        }
-    }
-    rewind(stdin);
-
-    data_points = (double**) calloc(num_of_points, sizeof(*data_points));
-    if (data_points == NULL) {
-        printf("\nAn Error Has Occurred\n");
-        exit(1);
-    }
-    return N;
-}
-
-void checkK(int k, int N, char *argv[]) {
-    if ((N < k) || (k < 0) || (strchr(argv[1], '.') != NULL)) {
+int checkK(int N, char *argv[]) {
+    int k = (atoi(argv[1]);
+    if ((strchr(argv[1], '.') != NULL) || (N <= k) || k <= 1)) {
         printf("\nInvalid Input!\n");
         exit(1);
     }
+    return k;
 }
 
-void matrixAllocation() {
-    for(i = 0; i < num_of_points; i++){
-        data_points[i] = (double*) calloc(dimension,sizeof(*data_points[i]));
-        assert(data_points[i] != NULL);
-    }
-    
-   for(i = 0; i < num_of_points; i++){
-       for(j = 0; j < dimension; j++){
-           scanf("%lf%c", &value, &c);
-           data_points[i][j] = value;
-       }
-   }
-}
-
-void initKClusters() {
-    clusters = (Cluster*)calloc(k,sizeof(struct Cluster));
-    for(i = 0; i < k; i++){
-        clusters[i].centroid = (double*)calloc(dimension, sizeof(double));
-        assert(clusters[i].centroid != NULL);
-
-        memcpy(clusters[i].centroid, data_points[i], sizeof(double)*dimension); /*will be equal to the i'th vector
-        */
-        clusters[i].num_of_points = 0;
-        clusters[i].sum_of_points = (double*)calloc(dimension, sizeof(double));
-        assert(clusters[i].sum_of_points != NULL);
-    }
-}
-
-void mainLoop() {
-    cnt = 0;
-    while ((cnt < max_iter) && (!same_average)) {
-        same_average = 1;
-        for(i = 0; i < num_of_points; i++){
-            calcCluster(data_points[i], clusters, k, dimension);
-        }
-        
-        same_average = updateMean(clusters, same_average, k, dimension);
-        if(same_average == 1){
-            break;
-        }
-
-        for(i = 0; i < k; i++){
-            clusters[i].num_of_points = 0;
-            for(j = 0; j < dimension; j++){
-                clusters[i].sum_of_points[j] = 0;
-            }
-        }
-        cnt++;
-    }
-}
-
-void calcCluster(double* vector, Cluster* clusters, int k, int dimension){
+void calcCluster(double* vector, Cluster* clusters, int k, int dim){
     double min_distance = -1.0;
-    int num_of_cluster = -1;
+    int closest_cluster = -1;
     double distance;
     int i = 0;
-
-    for(i = 0; i < k; i++){
-        distance = calcEuclidianDistance(vector, clusters[i].centroid, dimension);
-        if((distance < min_distance) || (min_distance < 0)){
-            min_distance = distance;
-            num_of_cluster = i;
-        }
-    }
-    clusters[num_of_cluster].num_of_points++;
-    updateClusterSum(vector, num_of_cluster, clusters, dimension);
-}
-
-void updateClusterSum(double* vector, int loc, Cluster* clusters, int dimension){
-    int i = 0;
-    for(i = 0; i < dimension; i++){
-        clusters[loc].sum_of_points[i] += vector[i];
-    }
-}
-
-int updateMean(Cluster* clusters, int same_average, int k, int dimension){
-    int i = 0;
     int j = 0;
-    for(i = 0; i < k; i++){
-        for(j = 0; j < dimension; j++){
-            if((clusters[i].sum_of_points[j]/clusters[i].num_of_points)!=
-                clusters[i].centroid[j]){
-                    same_average = 0;
-                    clusters[i].centroid[j] = clusters[i].sum_of_points[j]/clusters[i].num_of_points;
-                }
+
+    /*find closest cluster to current vector*/
+    for (i = 0; i < k; i++) {
+        distance = calcDistance(vector, clusters[i].centroid, dim);
+        if ((distance < min_distance) || (min_distance < 0)) {
+            min_distance = distance; 
+            closest_cluster = i;
         }
     }
-    return same_average;
+    
+    /*update closest cluster*/
+    clusters[closest_cluster].vector_count++; 
+    for (j = 0; j < dim; j++) {
+        clusters[closest_cluster].vectors_sum[j] += vector[j];
+    }
 }
 
-double calcEuclidianDistance(double* vector1, double* centroid, int dimension){
+double calcDistance(double* vector1, double* vector2, int dim){
     double sum = 0.0;
-    int xi = 0;
-    for(xi = 0; xi < dimension; xi++){
-        sum += (vector1[xi]-centroid[xi])*(vector1[xi]-centroid[xi]);
+    int j = 0;
+    double dist = 0.0;
+
+    for (j = 0; j < dim; j++) {
+        sum += (vector1[j]-vector2[j])*(vector1[j]-vector2[j]);
     } 
-    return sum;
+
+    dist = sqrt(sum);
+    return dist;
 }
 
-void freeMemory(Cluster* clusters, double** data_points, int k, int num_of_points){
+int updateCentroids(Cluster* clusters, int k, int dim){
+    double epsilon = 0.001;
     int i = 0;
     int j = 0;
-    for(i = 0; i < num_of_points; i++){
-        free(data_points[i]);
-    }
-    free(data_points);
+    int has_converged = 1;
+    double* new_centroid = NULL;
+    double dist = 0;
 
-    for(j = 0; j < k; j++){
-        free(clusters[j].centroid);
-        free(clusters[j].sum_of_points);
+    /*calculate new centroid*/
+    for (i = 0; i < k; i++) {
+        new_centroid = (double*)calloc(dim, sizeof(double));
+        if (new_centroid == NULL) {
+            printf("\nAn Error Has Occurred\n");
+            exit(1);
+        }
+        for (j = 0; j < dim; j++) {
+            new_centroid[j] = (clusters[i].vectors_sum[j]/clusters[i].vector_count);
+        }
+        dist = calcDistance(clusters[i].centroid, new_centroid, dim);
+
+        /*check if convergence did not accured*/
+        if (dist > epsilon) {
+            has_converged = 0;
+        }
+
+        /*update centroid*/
+        memcpy(clusters[i].centroid, new_centroid, sizeof(double)*dim);
+        free(new_centroid);
     }
-    free(clusters);
+    return has_converged;
 }
