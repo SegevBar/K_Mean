@@ -11,6 +11,9 @@ typedef struct
 } Cluster;
 
 /*Prototypes*/
+void calcCluster(double* vector, Cluster* clusters, int k, int dim);
+double calcDistance(double* vector1, double* vector2, int dim);
+int updateCentroids(Cluster* clusters, int k, int dim);
 
 
 int main(int argc, char *argv[]){
@@ -42,7 +45,15 @@ int main(int argc, char *argv[]){
     }
     
     /*find max_iter*/
-    int max_iter = findMaxIter(hasMaxIter, *argv[]);  
+    if (hasMaxIter == 0) {  /*check if max_iter is default or param*/
+        max_iter = 200;
+    } else {
+        if ((atoi(argv[2]) <= 0) || (strchr(argv[2], '.') != NULL)) {
+            printf("\nInvalid Input!\n");
+            exit(1);
+        }
+        max_iter = atoi(argv[2]);
+    }  
     
     /*open input file*/
     ifp = fopen(argv[2 + hasMaxIter], "r");
@@ -52,29 +63,33 @@ int main(int argc, char *argv[]){
     }
 
     /*find vector dimensions*/
-    while ((c = fgetc(ifp)) != 10) {  //run until end of line
-        if (c == 44) {  //if c == "," increment dimension
+    while ((c = fgetc(ifp)) != 10) {  /*run until end of line*/
+        if (c == 44) {  /*if c == "," increment dimension*/
             dim++; 
         }
     }
     rewind(ifp);
 
     /*find N*/
-    while ((c = fgetc(ifp)) != EOF) {  //run until end of file
-        if(c == 10) { //if (c == "\n") increment N
+    while ((c = fgetc(ifp)) != EOF) {  /*run until end of file*/
+        if(c == 10) { /*if (c == "\n") increment N*/
             N++;
         }
     }
     rewind(ifp);
 
     /*find k and check if valid*/ 
-    k = checkK(N, *argv[]);
+    k = atoi(argv[1]);
+    if ((strchr(argv[1], '.') != NULL) || (N <= k) || (k <= 1)) {
+        printf("\nInvalid Input!\n");
+        exit(1);
+    }
    
     /*Init k clusters*/
-    clusters = (Cluster*)calloc(k,sizeof(struct Cluster));
+    clusters = (Cluster*)calloc(k,sizeof(Cluster));
     
     for (i = 0; i < k; i++){
-        clusters[i].vector_count = 0; //init cluster vector counter
+        clusters[i].vector_count = 0; /*init cluster vector counter*/
 
         /*init sum of vectors in cluster*/ 
         clusters[i].vectors_sum = (double*)calloc(dim, sizeof(double));
@@ -116,7 +131,7 @@ int main(int argc, char *argv[]){
         }
         
         /*update centroids*/
-        has_converged = updateCentroids(clusters, k, dimension);
+        has_converged = updateCentroids(clusters, k, dim);
         
         rewind(ifp);
         cnt++;
@@ -124,16 +139,16 @@ int main(int argc, char *argv[]){
     fclose(ifp);
 
     /*write to output file*/
-    fopen(ofp, "w");
+    ofp = fopen(argv[3 + hasMaxIter], "w");
     if (ofp == NULL) {
         printf("\nInvalid Input\n");
         exit(1);
     }
     for (i = 0; i < k; i++) {
         for (j = 0; j < dim-1; j++){
-            fprintf(ofp, "%lf%c", clusters[i].centroid[j], ',');
+            fprintf(ofp, "%.4f%c", clusters[i].centroid[j], ',');
         }
-        fprintf(ofp, "%lf%c", clusters[i].centroid[dim-1], '\n');
+        fprintf(ofp, "%.4f%c", clusters[i].centroid[dim-1], '\n');
     }
     fclose(ofp);
     
@@ -147,32 +162,7 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
-int findMaxIter(int hasMaxIter, char *argv[]) {
-    int max_iter = 0;
-
-    /*check if max_iter is default or param*/
-    if (hasMaxIter == 0) { 
-        max_iter = 200;
-    } else {
-        if ((atoi(argv[2]) <= 0) || (strchr(argv[2], '.') != NULL)) {
-            printf("\nInvalid Input!\n");
-            exit(1);
-        }
-        max_iter = atoi(argv[2]);
-    }
-    return max_iter;
-}
-
-int checkK(int N, char *argv[]) {
-    int k = (atoi(argv[1]);
-    if ((strchr(argv[1], '.') != NULL) || (N <= k) || k <= 1)) {
-        printf("\nInvalid Input!\n");
-        exit(1);
-    }
-    return k;
-}
-
-void calcCluster(double* vector, Cluster* clusters, int k, int dim){
+void calcCluster(double* vector, Cluster* clusters, int k, int dim) {
     double min_distance = -1.0;
     int closest_cluster = -1;
     double distance;
@@ -195,7 +185,7 @@ void calcCluster(double* vector, Cluster* clusters, int k, int dim){
     }
 }
 
-double calcDistance(double* vector1, double* vector2, int dim){
+double calcDistance(double* vector1, double* vector2, int dim) {
     double sum = 0.0;
     int j = 0;
     double dist = 0.0;
@@ -208,7 +198,7 @@ double calcDistance(double* vector1, double* vector2, int dim){
     return dist;
 }
 
-int updateCentroids(Cluster* clusters, int k, int dim){
+int updateCentroids(Cluster* clusters, int k, int dim) {
     double epsilon = 0.001;
     int i = 0;
     int j = 0;
