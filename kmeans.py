@@ -1,8 +1,6 @@
 import math
 import sys
 
-from sklearn import cluster
-
 def validateArgs(k, maxIterations = 200):
     if '.' in str(k) or int(k) <= 0:
         print("Invalid Input!")

@@ -5,7 +5,7 @@ input1:
 ./hw1 3 600 input_1.txt out.txt
 
 input2:
-./hw1 7 input_2.txt out.txt
+./hw1 7  input_2.txt out.txt
 
 input3:
 ./hw1 15 300 input_3.txt out.txt
