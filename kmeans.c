@@ -166,7 +166,6 @@ int main(int argc, char *argv[]){
     }
     free(clusters);
 
-    printf("\n");
     return 0;
 }
 
