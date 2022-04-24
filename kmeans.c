@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     
     /*check input for enough params*/
     if ((argc < 4) || (argc > 5)) {
-        printf("Invalid Input!");
+        printf("Invalid Input!\n");
         exit(1);
     } else {
         if (argc == 4) {
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
         max_iter = 200;
     } else {
         if ((atoi(argv[2]) <= 0) || (strchr(argv[2], '.') != NULL)) {
-            printf("Invalid Input!");
+            printf("Invalid Input!\n");
             exit(1);
         }
         max_iter = atoi(argv[2]);
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
     /*open input file*/
     ifp = fopen(argv[2 + hasMaxIter], "r");
     if (ifp == NULL) {
-        printf("Invalid Input!");
+        printf("Invalid Input!\n");
         exit(1);
     }
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]){
     /*find k and check if valid*/ 
     k = atoi(argv[1]);
     if ((strchr(argv[1], '.') != NULL) || (N <= k) || (k <= 1)) {
-        printf("Invalid Input!");
+        printf("Invalid Input!\n");
         exit(1);
     }
    
@@ -94,14 +94,14 @@ int main(int argc, char *argv[]){
         /*init sum of vectors in cluster*/ 
         clusters[i].vectors_sum = (double*)calloc(dim, sizeof(double));
         if (clusters[i].vectors_sum == NULL) {
-            printf("An Error Has Occurred");
+            printf("An Error Has Occurred\n");
             exit(1);
         }
 
         /*init centroid to i'th vectors*/
         clusters[i].centroid = (double*)calloc(dim, sizeof(double));
         if (clusters[i].centroid == NULL) {
-            printf("An Error Has Occurred");
+            printf("An Error Has Occurred\n");
             exit(1);
         }
         for (j = 0; j < dim; j++){
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]){
         for (i = 0; i < N; i++) {
             currVector = (double*)calloc(dim, sizeof(double));
             if (currVector == NULL) {
-                printf("An Error Has Occurred");
+                printf("An Error Has Occurred\n");
                 exit(1);
             }
             for (j = 0; j < dim; j++){
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]){
     /*write to output file*/
     ofp = fopen(argv[3 + hasMaxIter], "w");
     if (ofp == NULL) {
-        printf("Invalid Input!");
+        printf("Invalid Input!\n");
         exit(1);
     }
     for (i = 0; i < k; i++) {
@@ -214,7 +214,7 @@ int updateCentroids(Cluster* clusters, int k, int dim) {
     for (i = 0; i < k; i++) {
         new_centroid = (double*)calloc(dim, sizeof(double));
         if (new_centroid == NULL) {
-            printf("An Error Has Occurred");
+            printf("An Error Has Occurred\n");
             exit(1);
         }
         for (j = 0; j < dim; j++) {
