@@ -1,3 +1,4 @@
+C:
 gcc -ansi -Wall -Wextra -Werror -pedantic-errors kmeans.c -lm -o hw1
 
 input1:
@@ -16,4 +17,23 @@ input3:
 ./hw1 15.0 300 input_3.txt out.txt
 ./hw1 15.0 30.0 input_3.txt out.txt
 ./hw1 10 70 input_4.txt out.txt
+
+python:
+input1:
+python3 kmeans.py 3 600 input_1.txt out.txt
+
+input2:
+python3 kmeans.py 7  input_2.txt out.txt
+
+input3:
+python3 kmeans.py 15 300 input_3.txt out.txt
+
+"Invalid Input!":
+python3 kmeans.py input_1.txt out.txt
+python3 kmeans.py 15 300 input_3.txt out.txt 54
+python3 kmeans.py -1 100 input_1.txt out.txt
+python3 kmeans.py 15.0 300 input_3.txt out.txt
+python3 kmeans.py 15.0 30.0 input_3.txt out.txt
+python3 kmeans.py 10 70 input_4.txt out.txt
+
 
