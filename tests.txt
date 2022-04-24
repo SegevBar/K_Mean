@@ -14,5 +14,6 @@ input3:
 ./hw1 15 300 input_3.txt out.txt 54
 ./hw1 -1 100 input_1.txt out.txt
 ./hw1 15.0 300 input_3.txt out.txt
-./hw1 15 300 input_3.txt out.txt
-./hw1 10 70 input_1.txt out.txt
+./hw1 15.0 30.0 input_3.txt out.txt
+./hw1 10 70 input_4.txt out.txt
+
